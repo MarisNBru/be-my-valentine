@@ -37,6 +37,7 @@ function useFloatingHearts(count = 28) {
 }
 
 export default function ValentinesAsk() {
+  const [ticketUrl, setTicketUrl] = useState(null);
   const containerRef = useRef(null);
   const playRef = useRef(null);
   const yesRef = useRef(null);
@@ -155,25 +156,38 @@ export default function ValentinesAsk() {
   }, []);
 
   useEffect(() => {
-    try {
-      const now = new Date();
-      const round = fromLocalInputValue(toLocalInputValue(now));
-      if (round) {
-        console.assert(Math.abs(round.getTime() - now.getTime()) < 60000, "Roundtrip failed");
-      }
-      const nv = nextValentines();
-      console.assert(nv instanceof Date && nv.getTime() > now.getTime(), "nextValentines invalid");
-      const cnv = createTicketCanvas(ticketImg);
-      console.assert(cnv && cnv.width === 1200 && cnv.height === 600, "ticket canvas size");
+    (async () => {
       try {
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-        const dataUrl = cnv.toDataURL('image/png');
-        doc.addImage(dataUrl, 'PNG', 10, 10, 100, 50);
-      } catch (e) {
-        console.warn('PDF test skipped/failed', e);
-      }
-    } catch {}
+        const now = new Date();
+        const round = fromLocalInputValue(toLocalInputValue(now));
+        if (round) {
+          console.assert(Math.abs(round.getTime() - now.getTime()) < 60000, "Roundtrip failed");
+        }
+        const nv = nextValentines();
+        console.assert(nv instanceof Date && nv.getTime() > now.getTime(), "nextValentines invalid");
+        const cnv = await createTicketCanvas(ticketImg);
+        console.assert(cnv && cnv.width === 1200 && cnv.height === 600, "ticket canvas size");
+        try {
+          const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+          const dataUrl = cnv.toDataURL('image/png');
+          doc.addImage(dataUrl, 'PNG', 10, 10, 100, 50);
+        } catch (e) {
+          console.warn('PDF test skipped/failed', e);
+        }
+      } catch { }
+    })();
   }, []);
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      if (!accepted) return;
+      const cnv = await createTicketCanvas(ticketImg);
+      if (!cnv || cancel) return;
+      setTicketUrl(cnv.toDataURL('image/png'));
+    })();
+    return () => { cancel = true; };
+  }, [accepted, ticketImg]);
+
 
   function moveNoButton() {
     const wrap = playRef.current;
@@ -524,8 +538,18 @@ async function downloadDateTicket() {
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg">
                 <Heart className="h-8 w-8" />
               </div>
-              <h2 className="mb-2 text-3xl font-extrabold text-rose-700">Wooohoooo! 💞</h2>
-              <p className="mb-6 text-rose-600">Babbbyy, ¡me hace mucha ilusión! ¡Nuestro San Valentín será mágico! ✨</p>
+              <h2 className="mb-2 text-3xl font-extrabold text-rose-700">Wooohoooo!</h2>
+              <p className="mb-6 text-rose-600">Babbbyy, ¡me hace mucha ilusión! ¡Nuestro San Valentín será mágico!</p>
+              {ticketUrl && (
+                <div className="mb-5">
+                  <img
+                    src={ticketUrl}
+                    alt="Date Ticket"
+                    className="mx-auto w-full max-w-3xl rounded-2xl shadow-lg ring-1 ring-rose-100"
+                  />
+                </div>
+              )}
+
               <div className="grid gap-3 sm:grid-cols-3">
                 <button
                   onClick={downloadDateTicket}
