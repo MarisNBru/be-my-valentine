@@ -51,7 +51,7 @@ export default function ValentinesAsk() {
   const [noPos, setNoPos] = useState({ x: 0, y: 0 });
   const [noRuns, setNoRuns] = useState(0);
   const [ticketImg, setTicketImg] = useState(null);
-  const DEFAULT_TICKET_IMAGE = new URL('ticket.jpg', document.baseURI).toString();
+  const DEFAULT_TICKET_IMAGE = `${import.meta.env.BASE_URL}ticket.jpg`;
   const GMT6_MS = 6 * 60 * 60 * 1000;
   const [heartCount, setHeartCount] = useState(30);
   useEffect(() => {
