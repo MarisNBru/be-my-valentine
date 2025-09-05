@@ -248,15 +248,21 @@ export default function ValentinesAsk() {
   const noScale = Math.max(0.5, 1 - noRuns * 0.06);
 
   function formatDateGmt6(d) {
-    const t = new Date(d.getTime() - GMT6_MS);
-    const months = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-    const day = t.getUTCDate();
-    const mon = months[t.getUTCMonth()];
-    const year = t.getUTCFullYear();
-    const hh = String(t.getUTCHours()).padStart(2, '0');
-    const mm = String(t.getUTCMinutes()).padStart(2, '0');
-    return `${day} ${mon} ${year}, ${hh}:${mm} GMT-6`;
-  }
+  const t = new Date(d.getTime() - GMT6_MS);
+  const months = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  const day = t.getUTCDate();
+  const mon = months[t.getUTCMonth()];
+  const year = t.getUTCFullYear();
+
+  let hh = t.getUTCHours();
+  const mm = t.getUTCMinutes();
+  const ampm = hh >= 12 ? 'pm' : 'am';
+  hh = hh % 12;
+    if (hh === 0) hh = 12;
+
+  return `${day} ${mon} ${year}, ${hh}${mm ? ':'+String(mm).padStart(2,'0') : ''} ${ampm}`;
+}
+
 
   function createTicketCanvas(img) {
     const w = 1200, h = 600;
@@ -311,6 +317,8 @@ export default function ValentinesAsk() {
     ctx.font = '30px sans-serif';
     ctx.fillText('Fecha: ' + (target ? formatDateGmt6(target) : 'por confirmar'), leftX, yy + 34);
     ctx.fillText('Lugar: Monterrey', leftX, yy + 70);
+    ctx.fillText('Con: Maris Brunnmeier (Tu Niño)', leftX, yy + 106);  // ✨ neue Zeile
+
 
     const photoX = rightX + 8, photoY = 188, photoW = w - photoX - 72, photoH = 320, rad = 22;
     ctx.save(); rrect(photoX, photoY, photoW, photoH, rad); ctx.clip();
@@ -333,10 +341,10 @@ export default function ValentinesAsk() {
     ctx.globalAlpha = 1;
 
     const code = Math.random().toString(36).slice(2,8).toUpperCase();
-    const pillX = rightX + 34, pillY = photoY + photoH + 18, pillW = w - pillX - 68, pillH = 56;
-    ctx.fillStyle = '#ffe2ea'; rrect(pillX, pillY, pillW, pillH, 14); ctx.fill();
-    ctx.font = '700 24px monospace'; ctx.fillStyle = '#ff4d6d'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('Código: ' + code, pillX + pillW / 2, pillY + pillH / 2);
+ctx.font = 'bold 28px monospace';
+ctx.fillStyle = '#e63963';
+ctx.textAlign = 'center';
+ctx.fillText('Código: ' + code, w/2, h - 60);
 
     return canvas;
   }
