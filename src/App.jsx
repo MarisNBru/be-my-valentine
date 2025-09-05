@@ -264,118 +264,135 @@ export default function ValentinesAsk() {
 }
 
 
-  function createTicketCanvas(img) {
-    const w = 1200, h = 600;
-    const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext('2d'); if (!ctx) return null;
+  // ⬇️ ersetze deine createTicketCanvas-Version durch diese
+async function createTicketCanvas(img) {
+  const w = 1200, h = 600;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d'); if (!ctx) return null;
 
-    function rrect(x, y, ww, hh, r) {
-      const rr = Math.min(r, ww/2, hh/2);
-      ctx.beginPath();
-      ctx.moveTo(x + rr, y);
-      ctx.arcTo(x + ww, y, x + ww, y + hh, rr);
-      ctx.arcTo(x + ww, y + hh, x, y + hh, rr);
-      ctx.arcTo(x, y + hh, x, y, rr);
-      ctx.arcTo(x, y, x + ww, y, rr);
-      ctx.closePath();
-    }
-
-    const bg = ctx.createLinearGradient(0, 0, w, h);
-    bg.addColorStop(0, '#ffd7c7');
-    bg.addColorStop(1, '#ffb3c1');
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
-
-    ctx.save();
-    ctx.shadowColor = 'rgba(255,77,109,0.25)';
-    ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
-    rrect(32, 32, w - 64, h - 64, 24);
-    ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.fill();
-    ctx.restore();
-
-    ctx.strokeStyle = '#ff7aa5'; ctx.lineWidth = 3;
-    rrect(48, 48, w - 96, h - 96, 18); ctx.stroke();
-
-    const midX = w / 2;
-    ctx.setLineDash([6, 12]); ctx.strokeStyle = 'rgba(255,122,165,0.5)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(midX, 88); ctx.lineTo(midX, h - 88); ctx.stroke(); ctx.setLineDash([]);
-
-    const ribbonX = 72, ribbonW = w - 144, ribbonY = 84, ribbonH = 64;
-    const ribbonGrad = ctx.createLinearGradient(ribbonX, ribbonY, ribbonX + ribbonW, ribbonY + ribbonH);
-    ribbonGrad.addColorStop(0, '#ff5c7a'); ribbonGrad.addColorStop(1, '#ff3b6a');
-    ctx.fillStyle = ribbonGrad; rrect(ribbonX, ribbonY, ribbonW, ribbonH, 16); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '700 38px sans-serif';
-    ctx.fillText('Pase de Cita — San Valentín', w / 2, ribbonY + ribbonH / 2);
-
-    const leftX = 92, rightX = midX + 32;
-    let yy = 208;
-    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#222';
-    ctx.font = '700 36px sans-serif'; ctx.fillText('Para: ' + name, leftX, yy);
-    yy += 26; ctx.font = '26px sans-serif';
-    const wrap = function(text, x, y0, maxW, lineH){ var words = String(text).split(' '); var line = ''; var yLocal = y0; for (var i=0;i<words.length;i++){ var test = line ? line + ' ' + words[i] : words[i]; if (ctx.measureText(test).width > maxW && line){ ctx.fillText(line, x, yLocal); line = words[i]; yLocal += lineH; } else { line = test; } } if (line) ctx.fillText(line, x, yLocal); return yLocal; };
-    yy = wrap(question, leftX, yy + 26, midX - 128, 32) + 20;
-    ctx.font = '30px sans-serif';
-    ctx.fillText('Fecha: ' + (target ? formatDateGmt6(target) : 'por confirmar'), leftX, yy + 34);
-    ctx.fillText('Lugar: Monterrey', leftX, yy + 70);
-    ctx.fillText('Con: Maris Brunnmeier (Tu Niño)', leftX, yy + 106);  // ✨ neue Zeile
-
-
-    const photoX = rightX + 8, photoY = 188, photoW = w - photoX - 72, photoH = 320, rad = 22;
-    ctx.save(); rrect(photoX, photoY, photoW, photoH, rad); ctx.clip();
-    ctx.fillStyle = '#fbe0e6'; ctx.fillRect(photoX, photoY, photoW, photoH);
-
-    if (img && img.width && img.height) {
-      const scale = Math.max(photoW / img.width, photoH / img.height);
-      const dw = img.width * scale, dh = img.height * scale;
-      const dx = photoX + (photoW - dw) / 2; const dy = photoY + (photoH - dh) / 2;
-      ctx.drawImage(img, dx, dy, dw, dh);
-    } else {
-      ctx.fillStyle = '#ff8fab';
-      for (let i=0;i<16;i++){ const sx = photoX + 16 + Math.random()*(photoW-32); const sy = photoY + 16 + Math.random()*(photoH-32); ctx.beginPath(); const r=9+Math.random()*14; ctx.moveTo(sx, sy); ctx.bezierCurveTo(sx-r, sy-r, sx-2*r, sy+r/2, sx, sy+2*r); ctx.bezierCurveTo(sx+2*r, sy+r/2, sx+r, sy-r, sx, sy); ctx.fill(); }
-    }
-    ctx.restore();
-    ctx.strokeStyle = '#ff9bb0'; ctx.lineWidth = 3; rrect(photoX, photoY, photoW, photoH, rad); ctx.stroke();
-
-    ctx.globalAlpha = 0.09; ctx.fillStyle = '#ff4d6d';
-    for (let i=0;i<24;i++){ const hx = 72 + Math.random()*(w-144); const hy = 148 + Math.random()*(h-236); ctx.beginPath(); const r=8+Math.random()*14; ctx.moveTo(hx, hy); ctx.bezierCurveTo(hx-r, hy-r, hx-2*r, hy+r/2, hx, hy+2*r); ctx.bezierCurveTo(hx+2*r, hy+r/2, hx+r, hy-r, hx, hy); ctx.fill(); }
-    ctx.globalAlpha = 1;
-
-    const code = Math.random().toString(36).slice(2,8).toUpperCase();
-ctx.font = 'bold 28px monospace';
-ctx.fillStyle = '#e63963';
-ctx.textAlign = 'center';
-ctx.fillText('Código: ' + code, w/2, h - 60);
-
-    return canvas;
+  function rrect(x, y, ww, hh, r) {
+    const rr = Math.min(r, ww/2, hh/2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + ww, y, x + ww, y + hh, rr);
+    ctx.arcTo(x + ww, y + hh, x, y + hh, rr);
+    ctx.arcTo(x, y + hh, x, y, rr);
+    ctx.arcTo(x, y, x + ww, y, rr);
+    ctx.closePath();
   }
 
-  function downloadDateTicket() {
-    const canvas = createTicketCanvas(ticketImg);
-    if (!canvas) return;
-    const url = canvas.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = url; a.download = 'date-ticket.png';
-    document.body.appendChild(a); a.click(); a.remove();
-  }
+  const bg = ctx.createLinearGradient(0, 0, w, h);
+  bg.addColorStop(0, '#ffd7c7');
+  bg.addColorStop(1, '#ffb3c1');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
 
-  function downloadDateTicketPdf() {
-    const canvas = createTicketCanvas(ticketImg);
-    if (!canvas) return;
-    const dataUrl = canvas.toDataURL('image/png');
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 36;
-    const maxW = pageW - margin * 2;
-    const maxH = pageH - margin * 2;
-    const scale = Math.min(maxW / canvas.width, maxH / canvas.height);
-    const renderW = canvas.width * scale;
-    const renderH = canvas.height * scale;
-    const x = (pageW - renderW) / 2;
-    const y = (pageH - renderH) / 2;
-    doc.addImage(dataUrl, 'PNG', x, y, renderW, renderH);
-    doc.save('date-ticket.pdf');
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,77,109,0.25)';
+  ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
+  rrect(32, 32, w - 64, h - 64, 24);
+  ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = '#ff7aa5'; ctx.lineWidth = 3;
+  rrect(48, 48, w - 96, h - 96, 18); ctx.stroke();
+
+  const midX = w / 2;
+  ctx.setLineDash([6, 12]); ctx.strokeStyle = 'rgba(255,122,165,0.5)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(midX, 88); ctx.lineTo(midX, h - 88); ctx.stroke(); ctx.setLineDash([]);
+
+  const ribbonX = 72, ribbonW = w - 144, ribbonY = 84, ribbonH = 64;
+  const ribbonGrad = ctx.createLinearGradient(ribbonX, ribbonY, ribbonX + ribbonW, ribbonY + ribbonH);
+  ribbonGrad.addColorStop(0, '#ff5c7a'); ribbonGrad.addColorStop(1, '#ff3b6a');
+  ctx.fillStyle = ribbonGrad; rrect(ribbonX, ribbonY, ribbonW, ribbonH, 16); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '700 38px sans-serif';
+  ctx.fillText('Pase de Cita — San Valentín', w / 2, ribbonY + ribbonH / 2);
+
+  const leftX = 92, rightX = midX + 32;
+  let yy = 208;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#222';
+  ctx.font = '700 36px sans-serif'; ctx.fillText('Para: ' + name, leftX, yy);
+  yy += 26; ctx.font = '26px sans-serif';
+  const wrap = function(text, x, y0, maxW, lineH){ var words = String(text).split(' '); var line = ''; var yLocal = y0; for (var i=0;i<words.length;i++){ var test = line ? line + ' ' + words[i] : words[i]; if (ctx.measureText(test).width > maxW && line){ ctx.fillText(line, x, yLocal); line = words[i]; yLocal += lineH; } else { line = test; } } if (line) ctx.fillText(line, x, yLocal); return yLocal; };
+  yy = wrap(question, leftX, yy + 26, midX - 128, 32) + 20;
+  ctx.font = '30px sans-serif';
+  ctx.fillText('Fecha: ' + (target ? formatDateGmt6(target) : 'por confirmar'), leftX, yy + 34);
+  ctx.fillText('Lugar: Monterrey', leftX, yy + 70);
+  ctx.fillText('Con: Maris Brunnmeier (Tu Niño)', leftX, yy + 106);
+
+  const photoX = rightX + 8, photoY = 188, photoW = w - photoX - 72, photoH = 320, rad = 22;
+  ctx.save(); rrect(photoX, photoY, photoW, photoH, rad); ctx.clip();
+  ctx.fillStyle = '#fbe0e6'; ctx.fillRect(photoX, photoY, photoW, photoH);
+  if (img && img.width && img.height) {
+    const scale = Math.max(photoW / img.width, photoH / img.height);
+    const dw = img.width * scale, dh = img.height * scale;
+    const dx = photoX + (photoW - dw) / 2; const dy = photoY + (photoH - dh) / 2;
+    ctx.drawImage(img, dx, dy, dw, dh);
+  } else {
+    ctx.fillStyle = '#ff8fab';
+    for (let i=0;i<16;i++){ const sx = photoX + 16 + Math.random()*(photoW-32); const sy = photoY + 16 + Math.random()*(photoH-32); ctx.beginPath(); const r=9+Math.random()*14; ctx.moveTo(sx, sy); ctx.bezierCurveTo(sx-r, sy-r, sx-2*r, sy+r/2, sx, sy+2*r); ctx.bezierCurveTo(sx+2*r, sy+r/2, sx+r, sy-r, sx, sy); ctx.fill(); }
   }
+  ctx.restore();
+  ctx.strokeStyle = '#ff9bb0'; ctx.lineWidth = 3; rrect(photoX, photoY, photoW, photoH, rad); ctx.stroke();
+
+  ctx.globalAlpha = 0.09; ctx.fillStyle = '#ff4d6d';
+  for (let i=0;i<24;i++){ const hx = 72 + Math.random()*(w-144); const hy = 148 + Math.random()*(h-236); ctx.beginPath(); const r=8+Math.random()*14; ctx.moveTo(hx, hy); ctx.bezierCurveTo(hx-r, hy-r, hx-2*r, hy+r/2, hx, hy+2*r); ctx.bezierCurveTo(hx+2*r, hy+r/2, hx+r, hy-r, hx, hy); ctx.fill(); }
+  ctx.globalAlpha = 1;
+
+  // Code (mittig unten)
+  const code = Math.random().toString(36).slice(2,8).toUpperCase();
+  ctx.font = 'bold 28px monospace';
+  ctx.fillStyle = '#e63963';
+  ctx.textAlign = 'center';
+  ctx.fillText('Código: ' + code, w/2, h - 60);
+
+  // 🔳 QR-CODE (aus public/qr.png) – unten rechts
+  const qrSrc = `${import.meta.env.BASE_URL}qr.png`; // Datei in public/qr.png ablegen
+  const qrImg = new Image();
+  qrImg.src = qrSrc;
+  await new Promise((resolve)=>{ qrImg.onload = resolve; qrImg.onerror = resolve; });
+
+  const qrSize = 90;
+  const panelPad = 16;
+  const panelX = 72;                     // Abstand vom linken Rand
+  const panelY = h - 72 - (qrSize + panelPad * 2);
+  // weißes Panel hinter dem QR für Kontrast
+  ctx.save();
+ctx.shadowColor = 'rgba(0,0,0,0.12)';
+ctx.shadowBlur = 12;
+rrect(panelX, panelY, qrSize + panelPad*2, qrSize + panelPad*2, 14);
+ctx.fillStyle = '#ffffff';
+ctx.fill();
+ctx.restore();
+
+  // QR zeichnen
+  ctx.drawImage(qrImg, panelX + panelPad, panelY + panelPad, qrSize, qrSize);
+
+  return canvas;
+}
+
+
+async function downloadDateTicket() {
+  const canvas = await createTicketCanvas(ticketImg);
+  if (!canvas) return;
+  const url = canvas.toDataURL('image/png');
+  const a = document.createElement('a'); a.href = url; a.download = 'date-ticket.png';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+  async function downloadDateTicketPdf() {
+  const canvas = await createTicketCanvas(ticketImg);
+  if (!canvas) return;
+  const dataUrl = canvas.toDataURL('image/png');
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth(), pageH = doc.internal.pageSize.getHeight();
+  const margin = 36, maxW = pageW - margin*2, maxH = pageH - margin*2;
+  const scale = Math.min(maxW / canvas.width, maxH / canvas.height);
+  const wImg = canvas.width * scale, hImg = canvas.height * scale;
+  const x = (pageW - wImg) / 2, y = (pageH - hImg) / 2;
+  doc.addImage(dataUrl, 'PNG', x, y, wImg, hImg);
+  doc.save('date-ticket.pdf');
+}
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-rose-100 via-pink-50 to-rose-200">
