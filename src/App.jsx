@@ -41,6 +41,7 @@ export default function ValentinesAsk() {
   const containerRef = useRef(null);
   const playRef = useRef(null);
   const yesRef = useRef(null);
+  const videoRef = useRef(null);
   const [yesScale, setYesScale] = useState(1);
   const [target, setTarget] = useState(null);
   const [remaining, setRemaining] = useState(null);
@@ -49,10 +50,13 @@ export default function ValentinesAsk() {
   const [name, setName] = useState("Aleida Pérez Méndez");
   const [question, setQuestion] = useState("¿Quieres ser mi cita en San Valentín?");
   const [accepted, setAccepted] = useState(false);
+  const [videoMuted, setVideoMuted] = useState(true);
+  const [videoUrl, setVideoUrl] = useState(null);
   const [noPos, setNoPos] = useState({ x: 0, y: 0 });
   const [noRuns, setNoRuns] = useState(0);
   const [ticketImg, setTicketImg] = useState(null);
   const DEFAULT_TICKET_IMAGE = `${import.meta.env.BASE_URL}ticket.jpg`;
+  const DEFAULT_VIDEO = `${import.meta.env.BASE_URL}video.mp4`;
   const GMT6_MS = 6 * 60 * 60 * 1000;
   const [heartCount, setHeartCount] = useState(30);
   useEffect(() => {
@@ -87,12 +91,14 @@ export default function ValentinesAsk() {
       const n = sp.get("name");
       const q = sp.get("question") || sp.get("q");
       const d = sp.get("date");
+      const v = sp.get("video") || sp.get("vid");
       if (n) setName(n);
       if (q) setQuestion(q);
       if (d) {
         const td = new Date(d);
         if (!isNaN(td.getTime())) setTarget(td);
       }
+      setVideoUrl(v || DEFAULT_VIDEO);
     } catch {}
   }, []);
 
@@ -187,6 +193,16 @@ export default function ValentinesAsk() {
     })();
     return () => { cancel = true; };
   }, [accepted, ticketImg]);
+
+  useEffect(() => {
+    if (!accepted) return;
+    const v = videoRef.current;
+    if (!v) return;
+    const t = setTimeout(() => {
+      v.play().catch(() => {});
+    }, 50);
+    return () => clearTimeout(t);
+  }, [accepted]);
 
 
   function moveNoButton() {
@@ -474,9 +490,37 @@ async function downloadDateTicket() {
           </div>
 
           {target && remaining && !remaining.done && (
-            <p className="mb-4 text-center text-sm text-rose-600">
-              Faltan <span className="font-semibold">{remaining.d}</span> días {pad2(remaining.h)}:{pad2(remaining.m)}:{pad2(remaining.s)} para nuestra cita 💘
-            </p>
+            <motion.div
+              key={`${remaining.d}-${remaining.h}-${remaining.m}-${remaining.s}`}
+              initial={{ opacity: 0, y: 6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.2 }}
+              className="mx-auto mb-5 w-full max-w-2xl rounded-2xl bg-white/70 ring-1 ring-rose-200 backdrop-blur-md shadow-lg"
+              aria-live="polite"
+            >
+              <div className="flex items-center justify-center gap-2 px-4 pt-3 text-rose-600">
+                <Heart className="h-5 w-5 text-rose-500" />
+                <span className="text-sm font-medium">Faltan para nuestra cita</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2 px-4 py-3 sm:gap-3">
+                <div className="rounded-xl bg-white/80 ring-1 ring-rose-100 p-2 sm:p-3 text-center shadow-sm">
+                  <div className="font-mono text-3xl sm:text-4xl md:text-5xl font-extrabold text-rose-700">{remaining.d}</div>
+                  <div className="text-[10px] sm:text-xs text-rose-500">días</div>
+                </div>
+                <div className="rounded-xl bg-white/80 ring-1 ring-rose-100 p-2 sm:p-3 text-center shadow-sm">
+                  <div className="font-mono text-3xl sm:text-4xl md:text-5xl font-extrabold text-rose-700">{pad2(remaining.h)}</div>
+                  <div className="text-[10px] sm:text-xs text-rose-500">horas</div>
+                </div>
+                <div className="rounded-xl bg-white/80 ring-1 ring-rose-100 p-2 sm:p-3 text-center shadow-sm">
+                  <div className="font-mono text-3xl sm:text-4xl md:text-5xl font-extrabold text-rose-700">{pad2(remaining.m)}</div>
+                  <div className="text-[10px] sm:text-xs text-rose-500">min</div>
+                </div>
+                <div className="rounded-xl bg-white/80 ring-1 ring-rose-100 p-2 sm:p-3 text-center shadow-sm">
+                  <div className="font-mono text-3xl sm:text-4xl md:text-5xl font-extrabold text-rose-700">{pad2(remaining.s)}</div>
+                  <div className="text-[10px] sm:text-xs text-rose-500">seg</div>
+                </div>
+              </div>
+            </motion.div>
           )}
 
           <div
@@ -560,6 +604,34 @@ async function downloadDateTicket() {
               </div>
               <h2 className="mb-2 text-3xl font-extrabold text-rose-700">Wooohoooo!</h2>
               <p className="mb-6 text-rose-600">Babbbyy, ¡me hace mucha ilusión! ¡Nuestro San Valentín será mágico!</p>
+              {videoUrl && (
+                <div className="mb-5">
+                  <video
+                    ref={videoRef}
+                    src={videoUrl}
+                    className="mx-auto w-full max-w-3xl rounded-2xl shadow-lg ring-1 ring-rose-100"
+                    controls
+                    autoPlay
+                    playsInline
+                    muted={videoMuted}
+                  />
+                  <div className="mt-2 flex justify-center gap-2">
+                    <button
+                      onClick={() => { try { setVideoMuted(false); videoRef.current?.play(); } catch {} }}
+                      className="rounded-xl border border-rose-200 bg-white/80 px-4 py-2 text-rose-600 shadow-sm hover:bg-white"
+                    >
+                      Ton an
+                    </button>
+                    <button
+                      onClick={() => { try { videoRef.current?.pause(); } catch {} }}
+                      className="rounded-xl border border-rose-200 bg-white/80 px-4 py-2 text-rose-600 shadow-sm hover:bg-white"
+                    >
+                      Pause
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {ticketUrl && (
                 <div className="mb-5">
                   <img
