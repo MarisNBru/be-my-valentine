@@ -263,6 +263,32 @@ export default function ValentinesAsk() {
     })();
   }
 
+  function celebrateTicketReveal() {
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(60);
+      }
+    } catch {}
+    const colors = ["#ff90b5", "#ff4d6d", "#ffd6e8", "#ff8fab", "#ffc2d1"];
+    let shapes;
+    try {
+      if (typeof confetti.shapeFromText === 'function') {
+        const heart = confetti.shapeFromText({ text: '❤' });
+        shapes = [heart];
+      }
+    } catch {}
+    confetti({
+      particleCount: 80,
+      spread: 90,
+      startVelocity: 35,
+      gravity: 0.9,
+      ticks: 220,
+      origin: { y: 0.6 },
+      colors,
+      ...(shapes ? { shapes, scalar: 1.25 } : {}),
+    });
+  }
+
   function handlePointerMove(e) {
     const el = yesRef.current;
     if (!el) return;
@@ -535,6 +561,7 @@ async function downloadDateTicket() {
               ref={yesRef}
               onClick={() => {
                 setAccepted(true);
+                setShowTicket(false);
                 fireCelebration();
               }}
               animate={{ scale: yesScale * yesBase }}
@@ -604,9 +631,9 @@ async function downloadDateTicket() {
               </div>
               <h2 className="mb-2 text-3xl font-extrabold text-rose-700">Wooohoooo!</h2>
               <p className="mb-6 text-rose-600">Babbbyy, ¡me hace mucha ilusión! ¡Nuestro San Valentín será mágico!</p>
-              {videoUrl && (
+              {!showTicket && videoUrl && (
                 <div className="mb-5">
-                  <video
+                  <motion.video
                     ref={videoRef}
                     src={videoUrl}
                     className="mx-auto w-full max-w-3xl rounded-2xl shadow-lg ring-1 ring-rose-100"
@@ -614,6 +641,9 @@ async function downloadDateTicket() {
                     autoPlay
                     playsInline
                     muted={videoMuted}
+                    onEnded={() => { setShowTicket(true); celebrateTicketReveal(); }}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
                   />
                   <div className="mt-2 flex justify-center gap-2">
                     <button
@@ -628,20 +658,29 @@ async function downloadDateTicket() {
                     >
                       Pause
                     </button>
+                    <button
+                      onClick={() => { setShowTicket(true); celebrateTicketReveal(); }}
+                      className="rounded-xl bg-rose-500 px-4 py-2 font-semibold text-white shadow-sm hover:bg-rose-600"
+                    >
+                      Zum Ticket
+                    </button>
                   </div>
                 </div>
               )}
 
-              {ticketUrl && (
+              {showTicket && ticketUrl && (
                 <div className="mb-5">
-                  <img
+                  <motion.img
                     src={ticketUrl}
                     alt="Date Ticket"
                     className="mx-auto w-full max-w-3xl rounded-2xl shadow-lg ring-1 ring-rose-100"
+                    initial={{ opacity: 0, scale: 0.94, rotate: -0.5 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
                   />
                 </div>
               )}
 
+              {showTicket && (
               <div className="grid gap-3 sm:grid-cols-3">
                 <button
                   onClick={downloadDateTicket}
@@ -662,6 +701,7 @@ async function downloadDateTicket() {
                   Ver otra vez
                 </button>
               </div>
+              )}
             </motion.div>
           </motion.div>
         )}
