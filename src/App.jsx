@@ -50,8 +50,14 @@ export default function ValentinesAsk() {
   const [name, setName] = useState("Aleida Pérez Méndez");
   const [question, setQuestion] = useState("¿Quieres ser mi cita en San Valentín?");
   const [accepted, setAccepted] = useState(false);
-  const [videoMuted, setVideoMuted] = useState(true);
+  const [videoMuted, setVideoMuted] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
+  const [showTicket, setShowTicket] = useState(false);
+  const [showGenerating, setShowGenerating] = useState(false);
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const phraseTimerRef = useRef(null);
+  const genTimerRef = useRef(null);
+  const [videoDone, setVideoDone] = useState(false);
   const [noPos, setNoPos] = useState({ x: 0, y: 0 });
   const [noRuns, setNoRuns] = useState(0);
   const [ticketImg, setTicketImg] = useState(null);
@@ -70,6 +76,41 @@ export default function ValentinesAsk() {
   }, []);
 
   const hearts = useFloatingHearts(heartCount);
+
+  // Durations for the generating screen
+  const GEN_DURATION_MS = 9000; // total time showing the generating screen
+  const PHRASE_INTERVAL_MS = 3000; // time between phrases
+  const PROGRESS_DURATION_SEC = GEN_DURATION_MS / 1000; // progress bar animation
+
+  const reasons = useMemo(() => [
+    // 1
+    "Even 4am talks feel like the safest place in the world.",
+    
+
+    // 2
+    "Eres la razón por la que reviso mi teléfono con una sonrisa.",
+
+    // 3
+    "You make time zones feel like a funny challenge, not a wall.",
+
+    // 4
+    "Du bist meine liebste Ablenkung und zugleich mein liebster Fokus.",
+
+    // 5
+    "Our chats feel like home no matter where I am.",
+    "Unsere Gespräche fühlen sich wie Zuhause an, egal wo ich bin.",
+    "Nuestras conversaciones se sienten como en casa, sin importar dónde esté.",
+
+    // 6
+    "You make ordinary days sound extraordinary in just a few lines.",
+    "Du machst aus gewöhnlichen Tagen etwas Besonderes mit nur ein paar Zeilen.",
+    "Haces que los días ordinarios suenen extraordinarios con solo unas pocas palabras.",
+
+    // 7
+    "I fall in love with you a little more in every conversation.",
+    "In jedem Gespräch verliebe ich mich ein kleines Stück mehr in dich.",
+    "En cada conversación me enamoro un poco más de ti.",
+  ], []);
 
   useEffect(() => {
     try {
@@ -105,6 +146,22 @@ export default function ValentinesAsk() {
   useEffect(() => {
     if (!target) setTarget(nextValentines());
   }, []);
+
+  useEffect(() => {
+    return () => {
+      try { if (phraseTimerRef.current) clearInterval(phraseTimerRef.current); } catch {}
+      try { if (genTimerRef.current) clearTimeout(genTimerRef.current); } catch {}
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!accepted) {
+      try { if (phraseTimerRef.current) clearInterval(phraseTimerRef.current); } catch {}
+      try { if (genTimerRef.current) clearTimeout(genTimerRef.current); } catch {}
+      setShowGenerating(false);
+      setVideoDone(false);
+    }
+  }, [accepted]);
 
   useEffect(() => {
     if (!target) return;
@@ -199,10 +256,25 @@ export default function ValentinesAsk() {
     const v = videoRef.current;
     if (!v) return;
     const t = setTimeout(() => {
-      v.play().catch(() => {});
-    }, 50);
+      try {
+        v.muted = videoMuted;
+        v.play().catch(() => {
+          // Fallback: if autoplay with sound is blocked, mute and retry
+          try { v.muted = true; setVideoMuted(true); v.play().catch(() => {}); } catch {}
+        });
+      } catch {}
+    }, 80);
     return () => clearTimeout(t);
   }, [accepted]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    try {
+      v.muted = videoMuted;
+      if (!videoMuted) v.play().catch(() => {});
+    } catch {}
+  }, [videoMuted]);
 
 
   function moveNoButton() {
@@ -261,6 +333,22 @@ export default function ValentinesAsk() {
       });
       if (Date.now() < end) requestAnimationFrame(frame);
     })();
+  }
+
+  function startGenerating() {
+    try { if (phraseTimerRef.current) clearInterval(phraseTimerRef.current); } catch {}
+    try { if (genTimerRef.current) clearTimeout(genTimerRef.current); } catch {}
+    setShowGenerating(true);
+    setPhraseIndex(0);
+    phraseTimerRef.current = setInterval(() => {
+      setPhraseIndex((i) => (i + 1) % reasons.length);
+    }, PHRASE_INTERVAL_MS);
+    genTimerRef.current = setTimeout(() => {
+      try { if (phraseTimerRef.current) clearInterval(phraseTimerRef.current); } catch {}
+      setShowGenerating(false);
+      setShowTicket(true);
+      celebrateTicketReveal();
+    }, GEN_DURATION_MS);
   }
 
   function celebrateTicketReveal() {
@@ -562,6 +650,7 @@ async function downloadDateTicket() {
               onClick={() => {
                 setAccepted(true);
                 setShowTicket(false);
+                setVideoDone(false);
                 fireCelebration();
               }}
               animate={{ scale: yesScale * yesBase }}
@@ -631,7 +720,7 @@ async function downloadDateTicket() {
               </div>
               <h2 className="mb-2 text-3xl font-extrabold text-rose-700">Wooohoooo!</h2>
               <p className="mb-6 text-rose-600">Babbbyy, ¡me hace mucha ilusión! ¡Nuestro San Valentín será mágico!</p>
-              {!showTicket && videoUrl && (
+              {!showTicket && !showGenerating && videoUrl && (
                 <div className="mb-5">
                   <motion.video
                     ref={videoRef}
@@ -641,31 +730,76 @@ async function downloadDateTicket() {
                     autoPlay
                     playsInline
                     muted={videoMuted}
-                    onEnded={() => { setShowTicket(true); celebrateTicketReveal(); }}
+                    onEnded={() => { setVideoDone(true); }}
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
                   />
-                  <div className="mt-2 flex justify-center gap-2">
-                    <button
-                      onClick={() => { try { setVideoMuted(false); videoRef.current?.play(); } catch {} }}
-                      className="rounded-xl border border-rose-200 bg-white/80 px-4 py-2 text-rose-600 shadow-sm hover:bg-white"
-                    >
-                      Ton an
-                    </button>
-                    <button
-                      onClick={() => { try { videoRef.current?.pause(); } catch {} }}
-                      className="rounded-xl border border-rose-200 bg-white/80 px-4 py-2 text-rose-600 shadow-sm hover:bg-white"
-                    >
-                      Pause
-                    </button>
-                    <button
-                      onClick={() => { setShowTicket(true); celebrateTicketReveal(); }}
-                      className="rounded-xl bg-rose-500 px-4 py-2 font-semibold text-white shadow-sm hover:bg-rose-600"
-                    >
-                      Zum Ticket
-                    </button>
-                  </div>
+                  {videoDone && (
+                    <div className="mt-3 flex justify-center">
+                      <button
+                        onClick={startGenerating}
+                        className="rounded-xl bg-rose-500 px-6 py-2.5 font-semibold text-white shadow-sm hover:bg-rose-600"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
                 </div>
+              )}
+
+              {showGenerating && (
+                <motion.div
+                  key="generating"
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.25 }}
+                  className="mb-5"
+                >
+                  <div className="mx-auto w-full max-w-3xl rounded-2xl bg-white/80 p-6 shadow-xl ring-1 ring-rose-100 backdrop-blur">
+                    <div className="mb-2 flex items-center justify-center gap-2 text-rose-600">
+                      <Heart className="h-5 w-5 text-rose-500" />
+                      <span className="text-sm font-semibold">Generando tu ticket...</span>
+                      <Heart className="h-5 w-5 text-rose-500" />
+                    </div>
+
+                    <div className="relative mx-auto mt-2 h-2 w-full overflow-hidden rounded-full bg-rose-100">
+                      <motion.div
+                        className="h-full rounded-full bg-gradient-to-r from-rose-400 via-pink-400 to-rose-500"
+                        initial={{ width: 0 }}
+                        animate={{ width: '100%' }}
+                        transition={{ duration: PROGRESS_DURATION_SEC, ease: 'easeInOut' }}
+                      />
+                    </div>
+
+                    <div className="mt-4 min-h-[48px]">
+                      <AnimatePresence mode="wait">
+                        <motion.p
+                          key={phraseIndex}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.25 }}
+                          className="text-center text-rose-700"
+                        >
+                          {reasons[phraseIndex]}
+                        </motion.p>
+                      </AnimatePresence>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-center gap-4 text-rose-500">
+                      <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1.2 }}>
+                        <Heart className="h-6 w-6" />
+                      </motion.div>
+                      <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0.2 }}>
+                        <Heart className="h-6 w-6" />
+                      </motion.div>
+                      <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0.4 }}>
+                        <Heart className="h-6 w-6" />
+                      </motion.div>
+                    </div>
+                  </div>
+                </motion.div>
               )}
 
               {showTicket && ticketUrl && (
