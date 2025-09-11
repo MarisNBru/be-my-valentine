@@ -475,11 +475,34 @@ async function createTicketCanvas(img) {
   ctx.font = '700 36px sans-serif'; ctx.fillText('Para: ' + name, leftX, yy);
   yy += 26; ctx.font = '26px sans-serif';
   const wrap = function(text, x, y0, maxW, lineH){ var words = String(text).split(' '); var line = ''; var yLocal = y0; for (var i=0;i<words.length;i++){ var test = line ? line + ' ' + words[i] : words[i]; if (ctx.measureText(test).width > maxW && line){ ctx.fillText(line, x, yLocal); line = words[i]; yLocal += lineH; } else { line = test; } } if (line) ctx.fillText(line, x, yLocal); return yLocal; };
-  yy = wrap(question, leftX, yy + 26, midX - 128, 32) + 20;
-  ctx.font = '30px sans-serif';
-  ctx.fillText('Fecha: ' + (target ? formatDateGmt6(target) : 'por confirmar'), leftX, yy + 34);
-  ctx.fillText('Lugar: Monterrey', leftX, yy + 70);
+  yy = wrap(question, leftX, yy + 26, midX - 128, 30) + 18;
+  // modern info chips below
+  // ctx.font = '30px sans-serif';
+  // ctx.fillText('Fecha: ' + (target ? formatDateGmt6(target) : 'por confirmar'), leftX, yy + 34);
+  // ctx.fillText('Lugar: Monterrey', leftX, yy + 70);
   ctx.fillText('Con: Maris Brunnmeier (Tu Niño)', leftX, yy + 106);
+
+  // Clear old labels and draw modern info chips
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.96)';
+  ctx.fillRect(leftX - 6, yy + 8, midX - leftX - 50, 120);
+  ctx.restore();
+
+  function chip(x, y, label, value){
+    const padX = 10, radius = 10;
+    const upper = String(label).toUpperCase();
+    ctx.font = '700 11px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+    const tw = ctx.measureText(upper).width;
+    ctx.fillStyle = 'rgba(255, 111, 159, 0.15)';
+    rrect(x, y - 16, tw + padX*2, 24, radius); ctx.fill();
+    ctx.fillStyle = '#e33e6c'; ctx.fillText(upper, x + padX, y);
+    ctx.font = '600 20px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+    ctx.fillStyle = '#21303d'; ctx.fillText(value, x, y + 28);
+  }
+  const dateStr = target ? formatDateGmt6(target) : 'por confirmar';
+  chip(leftX, yy + 22, 'Fecha', dateStr);
+  chip(leftX + 260, yy + 22, 'Lugar', 'Monterrey');
+  chip(leftX, yy + 72, 'Con', 'Maris Brunnmeier');
 
   const photoX = rightX + 8, photoY = 188, photoW = w - photoX - 72, photoH = 320, rad = 22;
   ctx.save(); rrect(photoX, photoY, photoW, photoH, rad); ctx.clip();
