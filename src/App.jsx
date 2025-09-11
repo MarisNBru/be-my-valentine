@@ -251,28 +251,13 @@ export default function ValentinesAsk() {
     return () => { cancel = true; };
   }, [accepted, ticketImg]);
 
-  useEffect(() => {
-    if (!accepted) return;
-    const v = videoRef.current;
-    if (!v) return;
-    const t = setTimeout(() => {
-      try {
-        v.muted = videoMuted;
-        v.play().catch(() => {
-          // Fallback: if autoplay with sound is blocked, mute and retry
-          try { v.muted = true; setVideoMuted(true); v.play().catch(() => {}); } catch {}
-        });
-      } catch {}
-    }, 80);
-    return () => clearTimeout(t);
-  }, [accepted]);
+  // Autoplay disabled: do not programmatically start the video on accept
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
     try {
       v.muted = videoMuted;
-      if (!videoMuted) v.play().catch(() => {});
     } catch {}
   }, [videoMuted]);
 
@@ -446,9 +431,9 @@ async function createTicketCanvas(img) {
     ctx.closePath();
   }
 
-  const bg = ctx.createLinearGradient(0, 0, w, h);
-  bg.addColorStop(0, '#ffd7c7');
-  bg.addColorStop(1, '#ffb3c1');
+  const bg = ctx.createRadialGradient(w*0.7, h*0.1, 40, w*0.5, h*0.5, h*0.9);
+  bg.addColorStop(0, '#ffe3eb');
+  bg.addColorStop(1, '#ffc9d9');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
 
   ctx.save();
@@ -458,12 +443,24 @@ async function createTicketCanvas(img) {
   ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.fill();
   ctx.restore();
 
-  ctx.strokeStyle = '#ff7aa5'; ctx.lineWidth = 3;
+  ctx.strokeStyle = '#f6a5b9'; ctx.lineWidth = 2;
   rrect(48, 48, w - 96, h - 96, 18); ctx.stroke();
 
   const midX = w / 2;
-  ctx.setLineDash([6, 12]); ctx.strokeStyle = 'rgba(255,122,165,0.5)'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(midX, 88); ctx.lineTo(midX, h - 88); ctx.stroke(); ctx.setLineDash([]);
+  // Ticket notches within card
+  ctx.save();
+  rrect(32, 32, w - 64, h - 64, 24); ctx.clip();
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath(); ctx.arc(32, h/2, 16, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(w-32, h/2, 16, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  // Perforation dots at center
+  ctx.save();
+  for (let y = 88; y < h - 88; y += 18) {
+    ctx.beginPath(); ctx.arc(midX, y, 2, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(246,165,185,0.9)'; ctx.fill();
+  }
+  ctx.restore();
 
   const ribbonX = 72, ribbonW = w - 144, ribbonY = 84, ribbonH = 64;
   const ribbonGrad = ctx.createLinearGradient(ribbonX, ribbonY, ribbonX + ribbonW, ribbonY + ribbonH);
@@ -493,14 +490,18 @@ async function createTicketCanvas(img) {
     const dx = photoX + (photoW - dw) / 2; const dy = photoY + (photoH - dh) / 2;
     ctx.drawImage(img, dx, dy, dw, dh);
   } else {
-    ctx.fillStyle = '#ff8fab';
-    for (let i=0;i<16;i++){ const sx = photoX + 16 + Math.random()*(photoW-32); const sy = photoY + 16 + Math.random()*(photoH-32); ctx.beginPath(); const r=9+Math.random()*14; ctx.moveTo(sx, sy); ctx.bezierCurveTo(sx-r, sy-r, sx-2*r, sy+r/2, sx, sy+2*r); ctx.bezierCurveTo(sx+2*r, sy+r/2, sx+r, sy-r, sx, sy); ctx.fill(); }
+    // keep soft backdrop if no image
   }
+  // glossy overlay
+  const gloss = ctx.createLinearGradient(photoX, photoY, photoX, photoY + photoH);
+  gloss.addColorStop(0, 'rgba(255,255,255,0.35)');
+  gloss.addColorStop(0.4, 'rgba(255,255,255,0.08)');
+  gloss.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = gloss; ctx.fillRect(photoX, photoY, photoW, photoH);
   ctx.restore();
-  ctx.strokeStyle = '#ff9bb0'; ctx.lineWidth = 3; rrect(photoX, photoY, photoW, photoH, rad); ctx.stroke();
+  ctx.strokeStyle = '#ff9bb0'; ctx.lineWidth = 2; rrect(photoX, photoY, photoW, photoH, rad); ctx.stroke();
 
-  ctx.globalAlpha = 0.09; ctx.fillStyle = '#ff4d6d';
-  for (let i=0;i<24;i++){ const hx = 72 + Math.random()*(w-144); const hy = 148 + Math.random()*(h-236); ctx.beginPath(); const r=8+Math.random()*14; ctx.moveTo(hx, hy); ctx.bezierCurveTo(hx-r, hy-r, hx-2*r, hy+r/2, hx, hy+2*r); ctx.bezierCurveTo(hx+2*r, hy+r/2, hx+r, hy-r, hx, hy); ctx.fill(); }
+  // removed scattered hearts for a cleaner, modern look
   ctx.globalAlpha = 1;
 
   // Code (mittig unten)
@@ -518,7 +519,7 @@ async function createTicketCanvas(img) {
 
   const qrSize = 90;
   const panelPad = 16;
-  const panelX = 72;                     // Abstand vom linken Rand
+  const panelX = 72; // left side to avoid photo overlap
   const panelY = h - 72 - (qrSize + panelPad * 2);
   // weißes Panel hinter dem QR für Kontrast
   ctx.save();
@@ -604,11 +605,7 @@ async function downloadDateTicket() {
           </div>
 
           {target && remaining && !remaining.done && (
-            <motion.div
-              key={`${remaining.d}-${remaining.h}-${remaining.m}-${remaining.s}`}
-              initial={{ opacity: 0, y: 6, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.2 }}
+            <div
               className="mx-auto mb-5 w-full max-w-2xl rounded-2xl bg-white/70 ring-1 ring-rose-200 backdrop-blur-md shadow-lg"
               aria-live="polite"
             >
@@ -618,23 +615,23 @@ async function downloadDateTicket() {
               </div>
               <div className="grid grid-cols-4 gap-2 px-4 py-3 sm:gap-3">
                 <div className="rounded-xl bg-white/80 ring-1 ring-rose-100 p-2 sm:p-3 text-center shadow-sm">
-                  <div className="font-mono text-3xl sm:text-4xl md:text-5xl font-extrabold text-rose-700">{remaining.d}</div>
+                  <div className="font-mono text-3xl sm:text-4xl md:text-5xl font-extrabold text-rose-700"><AnimatePresence mode="wait"><motion.span key={remaining.d} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }} transition={{ duration: 0.2 }} className="inline-block">{remaining.d}</motion.span></AnimatePresence></div>
                   <div className="text-[10px] sm:text-xs text-rose-500">días</div>
                 </div>
                 <div className="rounded-xl bg-white/80 ring-1 ring-rose-100 p-2 sm:p-3 text-center shadow-sm">
-                  <div className="font-mono text-3xl sm:text-4xl md:text-5xl font-extrabold text-rose-700">{pad2(remaining.h)}</div>
+                  <div className="font-mono text-3xl sm:text-4xl md:text-5xl font-extrabold text-rose-700"><AnimatePresence mode="wait"><motion.span key={pad2(remaining.h)} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }} transition={{ duration: 0.2 }} className="inline-block">{pad2(remaining.h)}</motion.span></AnimatePresence></div>
                   <div className="text-[10px] sm:text-xs text-rose-500">horas</div>
                 </div>
                 <div className="rounded-xl bg-white/80 ring-1 ring-rose-100 p-2 sm:p-3 text-center shadow-sm">
-                  <div className="font-mono text-3xl sm:text-4xl md:text-5xl font-extrabold text-rose-700">{pad2(remaining.m)}</div>
+                  <div className="font-mono text-3xl sm:text-4xl md:text-5xl font-extrabold text-rose-700"><AnimatePresence mode="wait"><motion.span key={pad2(remaining.m)} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }} transition={{ duration: 0.2 }} className="inline-block">{pad2(remaining.m)}</motion.span></AnimatePresence></div>
                   <div className="text-[10px] sm:text-xs text-rose-500">min</div>
                 </div>
                 <div className="rounded-xl bg-white/80 ring-1 ring-rose-100 p-2 sm:p-3 text-center shadow-sm">
-                  <div className="font-mono text-3xl sm:text-4xl md:text-5xl font-extrabold text-rose-700">{pad2(remaining.s)}</div>
+                  <div className="font-mono text-3xl sm:text-4xl md:text-5xl font-extrabold text-rose-700"><AnimatePresence mode="wait"><motion.span key={pad2(remaining.s)} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }} transition={{ duration: 0.2 }} className="inline-block">{pad2(remaining.s)}</motion.span></AnimatePresence></div>
                   <div className="text-[10px] sm:text-xs text-rose-500">seg</div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           )}
 
           <div
@@ -727,7 +724,6 @@ async function downloadDateTicket() {
                     src={videoUrl}
                     className="mx-auto w-full max-w-3xl rounded-2xl shadow-lg ring-1 ring-rose-100"
                     controls
-                    autoPlay
                     playsInline
                     muted={videoMuted}
                     onEnded={() => { setVideoDone(true); }}
