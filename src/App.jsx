@@ -204,24 +204,44 @@ export default function ValentinesAsk() {
   }
 
   function fireCelebration() {
-    const end = Date.now() + 800;
+    // Gentle vibration on supported devices
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate([40, 30, 40]);
+      }
+    } catch {}
+
+    const end = Date.now() + 1000;
     const colors = ["#ff90b5", "#ff4d6d", "#ffd6e8", "#ff8fab", "#ffc2d1"];
+
+    // Prefer heart-shaped particles if available
+    let shapes;
+    try {
+      if (typeof confetti.shapeFromText === 'function') {
+        const heart = confetti.shapeFromText({ text: '❤' });
+        const sparkle = confetti.shapeFromText({ text: '💖' });
+        shapes = [heart, sparkle];
+      }
+    } catch {}
+
     (function frame() {
       confetti({
-        particleCount: 8,
+        particleCount: 10,
         angle: 60,
-        spread: 65,
-        startVelocity: 35,
+        spread: 70,
+        startVelocity: 38,
         origin: { x: 0, y: 0.8 },
         colors,
+        ...(shapes ? { shapes, scalar: 1.2 } : {}),
       });
       confetti({
-        particleCount: 8,
+        particleCount: 10,
         angle: 120,
-        spread: 65,
-        startVelocity: 35,
+        spread: 70,
+        startVelocity: 38,
         origin: { x: 1, y: 0.8 },
         colors,
+        ...(shapes ? { shapes, scalar: 1.2 } : {}),
       });
       if (Date.now() < end) requestAnimationFrame(frame);
     })();
